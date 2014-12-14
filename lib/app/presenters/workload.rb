@@ -72,7 +72,7 @@ class Workload
 
   def available_exercises
     lt = LanguageTrack.new(track_id)
-    problems = pending.select('distinct slug').where(language: track_id).map(&:slug)
+    problems = pending.select('distinct slug').where(track_id: track_id).map(&:slug)
 
     ordered_problems = (lt.ordered_exercises & problems).map do |slug|
       Problem.new(track_id, slug)

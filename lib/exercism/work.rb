@@ -27,7 +27,7 @@ class Work
   end
 
   def slugs_in(language)
-    Submission.select('distinct slug').where(language: language).map(&:slug)
+    Submission.select('distinct slug').where(track_id: language).map(&:slug)
   end
 
   def nitpickables
@@ -56,7 +56,7 @@ class Work
 
     def choices
       @choices ||= Submission.pending.
-        where(language: language, slug: slug).
+        where(track_id: language, slug: slug).
         not_commented_on_by(user).not_liked_by(user).
         not_submitted_by(user).unmuted_for(user).
         order("updated_at DESC")

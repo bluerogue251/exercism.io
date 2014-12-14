@@ -8,7 +8,7 @@ module ExercismAPI
       def self.for(user)
         sql = <<-SQL
         SELECT
-          ux.language AS track_id,
+          ux.track_id,
           ux.slug,
           u.username,
           ux.key

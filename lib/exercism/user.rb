@@ -55,7 +55,7 @@ class User < ActiveRecord::Base
   end
 
   def submissions_on(problem)
-    submissions.order('id DESC').where(language: problem.track_id, slug: problem.slug)
+    submissions.order('id DESC').where(track_id: problem.track_id, slug: problem.slug)
   end
 
   def most_recent_submission
@@ -67,7 +67,7 @@ class User < ActiveRecord::Base
   end
 
   def working_on?(problem)
-    active_submissions.where(language: problem.track_id, slug: problem.slug).count > 0
+    active_submissions.where(track_id: problem.track_id, slug: problem.slug).count > 0
   end
 
   def nitpicks_trail?(track_id)
@@ -95,11 +95,11 @@ class User < ActiveRecord::Base
   end
 
   def unlocked?(problem)
-    exercises.where(language: problem.track_id, slug: problem.slug, is_nitpicker: true).count > 0
+    exercises.where(track_id: problem.track_id, slug: problem.slug, is_nitpicker: true).count > 0
   end
 
   def completed?(problem)
-    submissions.where(language: problem.track_id, slug: problem.slug, state: 'done').count > 0
+    submissions.where(track_id: problem.track_id, slug: problem.slug, state: 'done').count > 0
   end
 
   def locksmith?
@@ -131,17 +131,17 @@ class User < ActiveRecord::Base
   end
 
   def unlocked_languages
-    @unlocked_languages ||= exercises.where(is_nitpicker: true).pluck('language').uniq
+    @unlocked_languages ||= exercises.where(is_nitpicker: true).pluck('track_id').uniq
   end
 
   def completed_submissions_in(track_id)
-    submissions.done.where(language: track_id)
+    submissions.done.where(track_id: track_id)
   end
 
   private
 
   def items_where(table, condition)
-    sql = "SELECT language AS track_id, slug FROM #{table} WHERE user_id = %s AND #{condition} ORDER BY created_at ASC" % id.to_s
+    sql = "SELECT track_id AS track_id, slug FROM #{table} WHERE user_id = %s AND #{condition} ORDER BY created_at ASC" % id.to_s
     User.connection.execute(sql).to_a.each_with_object(Hash.new {|h, k| h[k] = []}) do |result, problems|
       problems[result["track_id"]] << result["slug"]
     end

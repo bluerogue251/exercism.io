@@ -87,7 +87,7 @@ module ExercismWeb
           redirect '/'
         end
 
-        submission = Submission.where(user_id: current_user.id, language: selected_submission.track_id, slug: selected_submission.slug, state: 'done').first
+        submission = Submission.where(user_id: current_user.id, track_id: selected_submission.track_id, slug: selected_submission.slug, state: 'done').first
         if submission.nil?
           flash[:notice] = "No such submission"
           redirect "/"

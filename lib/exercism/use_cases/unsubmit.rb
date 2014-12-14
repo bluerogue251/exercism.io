@@ -21,7 +21,7 @@ class Unsubmit
 
     options = {
       user_id: @user,
-      language: submission.track_id,
+      track_id: submission.track_id,
       slug: submission.slug,
       version: submission.version - 1
     }

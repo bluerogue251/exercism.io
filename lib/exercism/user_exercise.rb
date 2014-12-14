@@ -1,4 +1,5 @@
 class UserExercise < ActiveRecord::Base
+  include TemporaryLanguageToTrackIdTranslator
   include Named
   has_many :submissions, ->{ order 'created_at ASC' }
 
@@ -14,10 +15,6 @@ class UserExercise < ActiveRecord::Base
   before_create do
     self.key ||= Exercism.uuid
     true
-  end
-
-  def track_id
-    language
   end
 
   # close & reopen:

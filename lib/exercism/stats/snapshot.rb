@@ -37,7 +37,7 @@ module Stats
     end
 
     def total_language_count
-      user.submissions.pluck(:language).uniq.count
+      user.submissions.pluck(:track_id).uniq.count
     end
 
     def recent_nitpick_count
@@ -49,7 +49,7 @@ module Stats
     end
 
     def recent_language_count
-      user.submissions.recent.pluck(:language).uniq.count
+      user.submissions.recent.pluck(:track_id).uniq.count
     end
   end
 end

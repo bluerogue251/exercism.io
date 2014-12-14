@@ -1,4 +1,5 @@
 class Submission < ActiveRecord::Base
+  include TemporaryLanguageToTrackIdTranslator
   serialize :solution, JSON
   belongs_to :user
   belongs_to :user_exercise
@@ -58,14 +59,14 @@ class Submission < ActiveRecord::Base
     where('submissions.created_at > ?', timestamp)
   }
 
-  scope :for_language, ->(language) {
-    where(language: language)
+  scope :for_language, ->(track_id) {
+    where(track_id: track_id)
   }
 
   scope :recent, -> { since(7.days.ago) }
 
   scope :completed_for, -> (problem) {
-    done.where(language: problem.track_id, slug: problem.slug)
+    done.where(track_id: problem.track_id, slug: problem.slug)
   }
 
   scope :random_completed_for, -> (problem) {
@@ -74,7 +75,7 @@ class Submission < ActiveRecord::Base
 
   scope :related, -> (submission) {
     chronologically
-      .where(user_id: submission.user.id, language: submission.track_id, slug: submission.slug)
+      .where(user_id: submission.user.id, track_id: submission.track_id, slug: submission.slug)
   }
 
   def self.on(problem)
@@ -100,16 +101,12 @@ class Submission < ActiveRecord::Base
     self.created_at.utc < (Time.now.utc - time)
   end
 
-  def track_id
-    language
-  end
-
   def problem
     @problem ||= Problem.new(track_id, slug)
   end
 
   def on(problem)
-    self.language = problem.track_id
+    self.track_id = problem.track_id
 
     self.slug = problem.slug
   end

@@ -69,7 +69,7 @@ module ExercismAPI
       get '/iterations/latest' do
         require_key
 
-        submissions = current_user.exercises.order(:language, :slug).map {|exercise|
+        submissions = current_user.exercises.order(:track_id, :slug).map {|exercise|
           exercise.submissions.last
         }.compact
         pg :iterations, locals: {submissions: submissions}

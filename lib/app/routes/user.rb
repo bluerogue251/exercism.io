@@ -5,7 +5,7 @@ module ExercismWeb
       post '/exercises/:language/:slug' do |language, slug|
         please_login
 
-        exercise = current_user.exercises.where(language: language, slug: slug).first
+        exercise = current_user.exercises.where(track_id: language, slug: slug).first
         exercise.unlock! if exercise
         redirect back
       end
