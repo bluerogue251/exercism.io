@@ -28,66 +28,45 @@ class Submission < ActiveRecord::Base
     true
   end
 
+  scope :chronologically, ->{ order(created_at: :asc) }
+  scope :reversed,        ->{ order(created_at: :desc) }
 
-  scope :done, ->{ where(state: 'done') }
-  scope :pending, ->{ where(state: %w(needs_input pending)) }
+  scope :older_than, ->(timestamp)            { where('created_at < ?', timestamp) }
+  scope :since,      ->(timestamp)            { where('created_at > ?', timestamp) }
+  scope :between,    ->(start_time, end_time) { where(created_at: start_time..end_time) }
+
+  scope :recent, ->{ since(7.days.ago) }
+  scope :aging,  ->{ pending.where('nit_count > 0').older_than(3.weeks.ago) }
+
+  scope :done,        ->{ where(state: 'done') }
+  scope :pending,     ->{ where(state: %w(needs_input pending)) }
   scope :hibernating, ->{ where(state: 'hibernating') }
   scope :needs_input, ->{ where(state: 'needs_input') }
-  scope :aging, lambda {
-    three_weeks_ago = Time.now - (60*60*24*7*3)
-    cutoff = three_weeks_ago.strftime('%Y-%m-%d %H:%M:%S')
-    pending.where('nit_count > 0').where('created_at < ?', cutoff)
-  }
-  scope :chronologically, -> { order('created_at ASC') }
-  scope :reversed, -> { order(created_at: :desc) }
+
   scope :not_commented_on_by, ->(user) {
-    joins("LEFT JOIN (SELECT submission_id FROM comments WHERE user_id=#{user.id}) AS already_commented ON submissions.id=already_commented.submission_id").
-    where('already_commented.submission_id IS NULL')
+    where("id NOT IN (#{Comment.where(user: user).select(:submission_id).to_sql})")
   }
+
   scope :not_liked_by, ->(user) {
-    joins("LEFT JOIN (SELECT submission_id FROM likes WHERE user_id=#{user.id}) AS already_liked ON submissions.id=already_liked.submission_id").
-    where('already_liked.submission_id IS NULL')
-  }
-  scope :not_submitted_by, ->(user) { where.not(user: user) }
-
-  scope :between, ->(upper_bound, lower_bound) {
-    where('created_at < ? AND created_at > ?', upper_bound, lower_bound)
+    where("id NOT IN (#{Like.where(user: user).select(:submission_id).to_sql})")
   }
 
-  scope :older_than, ->(timestamp) {
-    where('created_at < ?', timestamp)
+  scope :unmuted_for, ->(user) {
+    where("id NOT IN (#{MutedSubmission.where(user: user).select(:submission_id).to_sql})")
   }
 
-  scope :since, ->(timestamp) {
-    where('created_at > ?', timestamp)
+  scope :not_submitted_by, ->(user) {
+    where.not(user: user)
   }
 
   scope :for_language, ->(language) {
     where(language: language)
   }
 
-  scope :excluding, ->(user) {
-    where.not(user: user)
-  }
-
-  scope :recent, -> { where('submissions.created_at > ?', 7.days.ago) }
-
-  def self.completed_for(problem)
-    done.where(language: problem.track_id, slug: problem.slug)
-  end
-
-  def self.random_completed_for(problem)
-    where(
-      state: 'done',
-      language: problem.track_id,
-      slug: problem.slug
-    ).order('RANDOM()').limit(1).first
-  end
-
-  def self.related(submission)
-    order('created_at ASC').
-      where(user_id: submission.user.id, language: submission.track_id, slug: submission.slug)
-  end
+  scope :completed_for,        ->(problem)    { done.for(problem) }
+  scope :random_completed_for, ->(problem)    { done.for(problem).order('RANDOM()').first }
+  scope :related,              ->(submission) { chronologically.for(submission).where(user_id: submission.user_id) }
+  scope :for,                  ->(problem)    { where(language: problem.track_id, slug: problem.slug) }
 
   def self.on(problem)
     submission = new
@@ -96,20 +75,16 @@ class Submission < ActiveRecord::Base
     submission
   end
 
-  def self.unmuted_for(user)
-    joins("left join (select submission_id from muted_submissions ms where user_id=#{user.id}) as t ON t.submission_id=submissions.id").where('t.submission_id is null')
+  def discussion_involves_user?
+    nit_count < comments.count
   end
 
   def name
     @name ||= slug.split('-').map(&:capitalize).join(' ')
   end
 
-  def discussion_involves_user?
-    nit_count < comments.count
-  end
-
   def older_than?(time)
-    self.created_at.utc < (Time.now.utc - time)
+    created_at.utc < (Time.now.utc - time)
   end
 
   def track_id
@@ -122,18 +97,13 @@ class Submission < ActiveRecord::Base
 
   def on(problem)
     self.language = problem.track_id
-
-    self.slug = problem.slug
+    self.slug     = problem.slug
   end
 
   def supersede!
     self.state   = 'superseded'
     self.done_at = nil
     save
-  end
-
-  def submitted?
-    true
   end
 
   def like!(user)
